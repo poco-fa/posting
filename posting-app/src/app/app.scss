@@ -1,0 +1,68 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+}
+#map {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+#controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+#controls input,
+#controls button {
+  margin: 5px;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+#controls button {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+#startBtn.recording {
+  background-color: #28a745;
+  color: white;
+}
+#stopBtn:not(:disabled) {
+  background-color: #dc3545;
+  color: white;
+}
+#exportBtn,
+#saveBtn,
+#sheetBtn,
+#centerBtn,
+#loadBtn,
+#clearBtn {
+  background-color: #007bff;
+  color: white;
+}
+#exportBtn:hover,
+#saveBtn:hover,
+#sheetBtn:hover,
+#loadBtn:hover,
+#clearBtn:hover {
+  background-color: #0056b3;
+}
+#status {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+  z-index: 1000;
+}

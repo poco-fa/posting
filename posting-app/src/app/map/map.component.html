@@ -1,0 +1,16 @@
+<div id="controls">
+  <button id="startBtn" (click)="startRecording()" [disabled]="isRecording">開始</button>
+  <button id="stopBtn" (click)="stopRecording()" [disabled]="!isRecording">停止</button>
+  <button (click)="regist()" [disabled]="path.length === 0">共有</button>
+</div>
+
+<google-map
+  height="100vh"
+  width="100vw"
+  [center]="center"
+  [zoom]="zoom"
+>
+  <map-polyline *ngIf="path.length > 1" [path]="path" [options]="{strokeColor: '#FF0000', strokeWeight: 4}"></map-polyline>
+  <map-polyline *ngIf="local.length > 1" [path]="local" [options]="{strokeColor: '#00FF00', strokeWeight: 4}"></map-polyline>
+  <map-polyline *ngIf="shard.length > 1" [path]="shard" [options]="{strokeColor: '#0000FF', strokeWeight: 4}"></map-polyline>
+</google-map>

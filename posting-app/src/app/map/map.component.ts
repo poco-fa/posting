@@ -1,6 +1,8 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { GoogleMapsModule } from '@angular/google-maps';
 import { CommonModule } from '@angular/common';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 interface LatLng {
   lat: number;
@@ -10,7 +12,7 @@ interface LatLng {
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [GoogleMapsModule, CommonModule],
+  imports: [GoogleMapsModule, CommonModule], 
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
 })
@@ -25,6 +27,8 @@ export class MapComponent implements OnInit {
   watchId: number | null = null;
   readonly storageKey = 'local-path';
   readonly login_name = localStorage.getItem('login_name') || 'unknown';
+  
+  constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
     // 既存の記録があれば復元
@@ -89,39 +93,39 @@ export class MapComponent implements OnInit {
   }
 
   async regist() {
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${environment.apiToken}`
+    });
     try {
-      const res = await fetch('https://posting-data-1017332250772.europe-west1.run.app/add', {
-        method: 'POST',
-        body: JSON.stringify({name:this.login_name, value: [...this.path,...this.local] }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (res.ok) {
-        alert('共有しました');
-        localStorage.removeItem(this.storageKey);
-      } else {
-        alert('共有に失敗しました');
-      }
+      await this.http.post(
+        `https://${environment.fqdn}/add`,
+        { name: this.login_name, value: [...this.path, ...this.local] },
+        { headers }
+      ).toPromise();
+      alert('共有しました');
+      localStorage.removeItem(this.storageKey);
     } catch (e) {
       alert('共有エラー: ' + e);
     }
   }
 
-  async fetchShardData() {
+    async fetchShardData() {
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${environment.apiToken}`
+    });
     try {
-      const res = await fetch('https://posting-data-1017332250772.europe-west1.run.app/get',{
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (res.ok) {
-        this.shard = await res.json(); // オブジェクト配列をshardに格納
-        return true; // 成功時にtrueを返す（必要に応じて変更）
-      } else {
-        console.error('データ取得に失敗しました');
-        return false; // 失敗時にfalseを返す（必要に応じて変更）
-      }
+      const res = await this.http.post(
+        `https://${environment.fqdn}/get`,
+        { name: this.login_name },
+        { headers }
+      ).toPromise();
+      this.shard = res as any[];
+      return true;
     } catch (e) {
       console.error('データ取得エラー: ' + e);
-      return false; // エラー時もfalseを返す（必要に応じて変更）
+      return false;
     }
   }
 }

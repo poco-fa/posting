@@ -1,6 +1,8 @@
 import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
 import { GoogleMap, GoogleMapsModule } from '@angular/google-maps';
 import { CommonModule } from '@angular/common';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 interface LatLng {
   lat: number;
@@ -36,6 +38,8 @@ export class MapComponent implements OnInit, AfterViewInit {
     zoomControl: true,          // ズームコントロールは必要に応じて
     scaleControl: false,        // スケールバー
   };
+
+  constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
     // 既存の記録があれば復元
@@ -148,11 +152,15 @@ export class MapComponent implements OnInit, AfterViewInit {
 
   async regist() {
     try {
-      const res = await fetch('https://posting-data-1017332250772.europe-west1.run.app/add', {
-        method: 'POST',
-        body: JSON.stringify({ name: this.login_name, value: [...this.path, ...this.local] }),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const res = await fetch(`https://${environment.fqdn}/add`,
+        {
+          method: 'POST',
+          body: JSON.stringify(
+            { name: this.login_name, value: [...this.path, ...this.local] }
+          ),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
       if (res.ok) {
         alert('共有しました');
         localStorage.removeItem(this.storageKey);
@@ -166,10 +174,12 @@ export class MapComponent implements OnInit, AfterViewInit {
 
   async fetchShardData() {
     try {
-      const res = await fetch('https://posting-data-1017332250772.europe-west1.run.app/get', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const res = await fetch(`https://${environment.fqdn}/get`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
       if (res.ok) {
         let data = await res.json();
         for (let name in data) {

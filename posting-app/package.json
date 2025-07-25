@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "proxy": "ng serve --host 0.0.0.0 --proxy-config src/proxy.conf.json",
+    "start": "ng serve --host 0.0.0.0",
     "build": "ng build --source-map=true --configuration development",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"

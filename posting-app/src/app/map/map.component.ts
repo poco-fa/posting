@@ -3,6 +3,8 @@ import { GoogleMap, GoogleMapsModule } from '@angular/google-maps';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../environments/environment';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 interface LatLng {
   lat: number;
@@ -12,7 +14,7 @@ interface LatLng {
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [GoogleMapsModule, CommonModule],
+  imports: [GoogleMapsModule, CommonModule], 
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
 })
@@ -195,6 +197,7 @@ export class MapComponent implements OnInit, AfterViewInit {
       }
     } catch (e) {
       console.error('データ取得エラー: ' + e);
+      return false;
       return false;
     }
   }

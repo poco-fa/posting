@@ -148,6 +148,13 @@ export class MapComponent implements OnInit, AfterViewInit {
       this.local = [...this.local, ...this.path];
       localStorage.setItem(this.storageKey, JSON.stringify(this.local));
       this.path = []; // pathをリセット
+      const saved = localStorage.getItem(this.storageKey);
+      if (saved) {
+        this.local = JSON.parse(saved);
+        if (this.local.length > 0) {
+          this.local = this.local.slice(1); // 最初のポイントは削除
+        }
+      }
       this.watchId = null;
     }
     // pathは既にlocalStorageに保存済み
@@ -159,7 +166,7 @@ export class MapComponent implements OnInit, AfterViewInit {
         {
           method: 'POST',
           body: JSON.stringify(
-            { name: this.login_name, value: [...this.path, ...this.local] }
+            { name: this.login_name, value: [...this.local] }
           ),
           headers: { 'Content-Type': 'application/json' },
         }

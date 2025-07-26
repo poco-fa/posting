@@ -145,6 +145,9 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.isRecording = false;
     if (this.watchId !== null) {
       navigator.geolocation.clearWatch(this.watchId);
+      this.local = [...this.local, ...this.path];
+      localStorage.setItem(this.storageKey, JSON.stringify(this.local));
+      this.path = []; // pathをリセット
       this.watchId = null;
     }
     // pathは既にlocalStorageに保存済み

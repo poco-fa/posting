@@ -18,19 +18,17 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Move Current Directory
-        run: cd posting-app
-
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+        working-directory: posting-app
 
       - name: Build
         run: npm run build
+        working-directory: posting-app
 
       - name: Zip build output
-        run: |
-          cd dist
-          zip -r posting-app.zip posting-app
+        run: zip -r posting-app.zip posting-app
+        working-directory: posting-app/dist
 
       - name: Create GitHub Release and Upload Asset
         uses: softprops/action-gh-release@v2

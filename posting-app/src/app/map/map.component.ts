@@ -46,7 +46,7 @@ export class MapComponent implements OnInit, AfterViewInit {
     const saved = localStorage.getItem(this.storageKey);
     if (saved) {
       this.local = JSON.parse(saved);
-      if (this.path.length > 0) {
+      if (this.local.length > 0) {
         this.center = this.local[this.local.length - 1];
       }
     }
@@ -164,6 +164,9 @@ export class MapComponent implements OnInit, AfterViewInit {
       if (res.ok) {
         alert('共有しました');
         localStorage.removeItem(this.storageKey);
+        this.local = [];
+        this.path = [];
+        this.fetchShardData(); // 最新のデータを再取得
       } else {
         alert('共有に失敗しました');
       }

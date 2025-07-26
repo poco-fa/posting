@@ -42,15 +42,12 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
-      - name: Upload to Google Cloud Storage
-        uses: google-github-actions/upload-cloud-storage@v2
+      - name: Install gcloud SDK
+        uses: google-github-actions/setup-gcloud@v2
         with:
-          path: posting-app/dist/posting-app/browser
-          destination: posting-data-bucket/
-          parent: false
-          process_gcloudignore: false
-          headers: |
-            *.html:text/html
-            *.css:text/css
-            *.js:application/javascript
-            *.json:application/json
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Upload with gsutil (Content-Type auto)
+        run: |
+          gsutil -m rsync -r -d posting-app/dist/posting-app/browser gs://posting-data-bucket/

@@ -184,8 +184,9 @@ export class MapComponent implements OnInit, AfterViewInit {
         let data = await res.json();
         for (let name in data) {
           for (let date in data[name]) {
-            if (!this.shard[date]) this.shard[date] = [];
-            this.shard[date] = [...this.shard[date], ...data[name][date]];
+            const key = `${date}-${name}`;
+            if (!this.shard[key]) this.shard[key] = [];
+            this.shard[key] = [...this.shard[key], ...data[name][date]];
           }
         }
         return true;

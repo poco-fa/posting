@@ -48,3 +48,4 @@ jobs:
           path: posting-app/dist/posting-app/browser
           destination: posting-data-bucket/
           parent: false
+          process_gcloudignore: false

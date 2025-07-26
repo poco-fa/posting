@@ -49,3 +49,8 @@ jobs:
           destination: posting-data-bucket/
           parent: false
           process_gcloudignore: false
+          headers: |
+            *.html:text/html
+            *.css:text/css
+            *.js:application/javascript
+            *.json:application/json

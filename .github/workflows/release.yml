@@ -36,3 +36,11 @@ jobs:
           files: posting-app/dist/posting-app.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload to Google Cloud Storage
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          path: posting-app/dist/posting-app/browser
+          destination: gs://posting-data-bucket/
+          parent: false
+          credentials: ${{ secrets.GCP_CREDENTIALS }}

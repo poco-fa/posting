@@ -194,7 +194,10 @@ export class MapComponent implements OnInit, AfterViewInit {
               if( date ) {
                 const key = `${date}-${name}`;
                 if (!this.shard[key]) this.shard[key] = [];
-                this.shard[key] = [...this.shard[key], ...data[name][date]];
+                this.shard[key] = [
+                  ...this.shard[key], 
+                  ...(data[name][date].filter((item: any) => item !== null)),
+                ];
               }
             }
           }

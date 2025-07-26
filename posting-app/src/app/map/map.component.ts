@@ -28,7 +28,7 @@ export class MapComponent implements OnInit, AfterViewInit {
   local: LatLng[] = [];
   shard: Record<string, LatLng[]> = {}; 
   watchId: number | null = null;
-  readonly storageKey = 'local-path';
+  readonly storageKey = 'local';
   readonly login_name = localStorage.getItem('login_name') || 'unknown';
 
   mapOptions: google.maps.MapOptions = {

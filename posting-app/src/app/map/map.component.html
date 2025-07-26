@@ -1,7 +1,7 @@
 <div id="controls">
   <button id="startBtn" (click)="startRecording()" [disabled]="isRecording">開始</button>
   <button id="stopBtn" (click)="stopRecording()" [disabled]="!isRecording">停止</button>
-  <button id="registBtn" (click)="regist()" [disabled]="path.length === 0">共有</button>
+  <button id="registBtn" (click)="regist()" [disabled]="local.length === 0">共有</button>
   <button id="locationBtn" (click)="getCurrentLocation()">現在位置</button>
 </div>
 
@@ -22,6 +22,8 @@
   <map-polyline *ngIf="path.length > 1" [path]="path" [options]="{strokeColor: '#FF0000', strokeWeight: 4}"></map-polyline>
   <map-polyline *ngIf="local.length > 1" [path]="local" [options]="{strokeColor: '#00FF00', strokeWeight: 4}"></map-polyline>
   <map-polyline *ngFor="let entry of shard | keyvalue"
-    [path]="entry.value" [options]="{strokeColor: '#0000FF', strokeWeight: 4}"></map-polyline>
+    [path]="entry.value" 
+    [options]="{strokeColor: '#0000FF', strokeWeight: 4}">
+  </map-polyline>
 </google-map>
 </div>

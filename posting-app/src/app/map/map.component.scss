@@ -43,14 +43,14 @@
 }
 
 #controls button#startBtn {
-  background: #e0f7e9;
-  color: #1b5e20;
+  background: #4caf50;
+  color: #fff;
 }
 
 #controls button#startBtn:active,
 #controls button#startBtn[disabled] {
-  background: #4caf50;
-  color: #fff;
+  background: #e0f7e9;
+  color: #1b5e20;
 }
 
 #controls button#stopBtn {

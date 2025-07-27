@@ -3,11 +3,7 @@ import { GoogleMap, GoogleMapsModule } from '@angular/google-maps';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-
-interface LatLng {
-  lat: number;
-  lng: number;
-}
+import { PathSegmentationService, LatLng, PathSegment } from './path-segmentation.service';
 
 @Component({
   selector: 'app-map',
@@ -39,7 +35,22 @@ export class MapComponent implements OnInit, AfterViewInit {
     scaleControl: false,        // スケールバー
   };
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private pathSegmentationService: PathSegmentationService) {}
+
+  /**
+   * 表示用のパスセグメントを取得
+   */
+  get pathSegments(): PathSegment[] {
+    return this.pathSegmentationService.createPathSegments(this.path);
+  }
+
+  get localSegments(): PathSegment[] {
+    return this.pathSegmentationService.createPathSegments(this.local);
+  }
+
+  getShardSegments(points: LatLng[]): PathSegment[] {
+    return this.pathSegmentationService.createPathSegments(points);
+  }
 
   ngOnInit(): void {
     // 既存の記録があれば復元
@@ -121,6 +132,20 @@ export class MapComponent implements OnInit, AfterViewInit {
           let last = this.path[this.path.length - 1];
           // 直前のポイントと同じ位置は追加しない
           if (last && last.lat === point.lat && last.lng === point.lng) return;
+
+          // 精度チェック: 精度が低い場合（100m以上の誤差）は無視
+          if (position.coords.accuracy > 100) {
+            console.warn(`GPS精度が低いため点を無視: 精度 ${position.coords.accuracy}m`);
+            return;
+          }
+
+          // 距離チェック: 前の点から遠すぎる場合は警告ログを出力
+          if (last) {
+            const distance = this.pathSegmentationService.calculateDistance(last, point);
+            if (distance > this.pathSegmentationService.maxDistanceThreshold) {
+              console.warn(`前の点から${Math.round(distance)}m離れている新しい点を記録 (閾値: ${this.pathSegmentationService.maxDistanceThreshold}m)`);
+            }
+          }
 
           // マップの中心を更新
           if (this.map?.googleMap) {

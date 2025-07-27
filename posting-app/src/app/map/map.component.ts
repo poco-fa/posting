@@ -3,7 +3,7 @@ import { GoogleMap, GoogleMapsModule } from '@angular/google-maps';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { PathSegmentationService, LatLng, PathSegment } from './path-segmentation.service';
+import { PathSegmentationService, LatLng, PathSegment } from '../service/path-segmentation.service';
 
 @Component({
   selector: 'app-map',

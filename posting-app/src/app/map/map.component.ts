@@ -220,4 +220,15 @@ export class MapComponent implements OnInit, AfterViewInit {
       return false;
     }
   }
+
+  // Clear localStorage function
+  clearLocalStorage() {
+    if (confirm('本当にローカルデータを削除しますか？\n党員番号と記録されたパスがすべて削除されます。')) {
+      localStorage.removeItem('login_name');
+      localStorage.removeItem(this.storageKey);
+      this.local = [];
+      this.path = [];
+      alert('ローカルデータを削除しました。\nページを再読み込みすると党員番号の入力が求められます。');
+    }
+  }
 }

@@ -5,6 +5,11 @@
   <button id="locationBtn" (click)="getCurrentLocation()">現在位置</button>
 </div>
 
+<!-- Inconspicuous clear localStorage button -->
+<div id="clearDataControl">
+  <span class="clear-data-link" (click)="clearLocalStorage()">データ削除</span>
+</div>
+
 <div class="map-container">
 <google-map #map
   height="100vh"

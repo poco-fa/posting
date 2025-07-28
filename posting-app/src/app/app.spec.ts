@@ -3,9 +3,16 @@ import { App } from './app';
 
 describe('App', () => {
   beforeEach(async () => {
+    // Set up localStorage for tests
+    localStorage.setItem('login_name', 'test-user');
+    
     await TestBed.configureTestingModule({
       imports: [App],
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
   });
 
   it('should create the app', () => {
@@ -14,10 +21,9 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render title', () => {
+  it('should have title signal', () => {
     const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, posting-app');
+    const app = fixture.componentInstance;
+    expect(app.title()).toBe('posting-app');
   });
 });

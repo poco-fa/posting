@@ -21,6 +21,10 @@ describe('App', () => {
     }).compileComponents();
   });
 
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   it('should create the app', () => {
     // アプリコンポーネントの基本的な生成テスト
     const fixture = TestBed.createComponent(App);

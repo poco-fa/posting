@@ -67,6 +67,34 @@
   opacity: 0.85;
 }
 
+// Inconspicuous clear data control
+#clearDataControl {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 10000;
+}
+
+.clear-data-link {
+  font-size: 0.8rem;
+  color: #999;
+  text-decoration: underline;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.clear-data-link:hover {
+  color: #666;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.clear-data-link:active {
+  color: #333;
+}
+
 // 他のボタンは今まで通り
 
 .material-symbols-rounded {

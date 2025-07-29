@@ -444,4 +444,67 @@ export class MapComponent implements OnInit, AfterViewInit {
       return false;
     }
   }
+
+  // Clear localStorage function
+  clearLocalStorage() {
+    if (confirm('本当にローカルデータを削除しますか？\n党員番号と記録されたパスがすべて削除され、位置情報の許可も再度求められます。')) {
+      localStorage.removeItem('login_name');
+      localStorage.removeItem(this.storageKey);
+      this.local = [];
+      this.path = [];
+      alert('ローカルデータを削除しました。\nページを再読み込みすると党員番号の入力が求められます。');
+      
+      // Request location permission again
+      this.requestLocationPermission();
+    }
+  }
+
+  /**
+   * 位置情報の許可を再度要求する
+   * ユーザーが誤って位置情報を拒否した場合に使用
+   */
+  private requestLocationPermission() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          // Permission granted successfully
+          const pos: google.maps.LatLngLiteral = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          
+          // Update current position and center map
+          this.currentPosition = pos;
+          if (this.map?.googleMap) {
+            this.map.googleMap.setCenter(pos);
+          }
+          
+          alert('位置情報へのアクセスが許可されました。');
+        },
+        (error) => {
+          // Permission denied or error occurred
+          let errorMessage = '位置情報の取得に失敗しました。';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = '位置情報へのアクセスが拒否されました。\nブラウザの設定から位置情報を許可してください。';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = '位置情報が利用できません。';
+              break;
+            case error.TIMEOUT:
+              errorMessage = '位置情報の取得がタイムアウトしました。';
+              break;
+          }
+          alert(errorMessage);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      alert('このブラウザは位置情報をサポートしていません。');
+    }
+  }
 }

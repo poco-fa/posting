@@ -35,6 +35,16 @@ describe('MapComponent', () => {
   let pathSegmentationService: PathSegmentationService;
 
   beforeEach(async () => {
+    // Mock Google Maps
+    (window as any).google = {
+      maps: {
+        Map: class MockMap {},
+        LatLng: class MockLatLng {},
+        Marker: class MockMarker {},
+        ControlPosition: {},
+      }
+    };
+
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule], // HTTP通信のモック
       providers: [PathSegmentationService],
@@ -126,6 +136,72 @@ describe('MapComponent', () => {
       expect(component.path).toEqual([]); // 空の軌跡
       expect(component.local).toEqual([]); // 空のローカルデータ
       expect(component.shard).toEqual({}); // 空の共有データ
+    });
+  });
+
+  describe('clearLocalStorage', () => {
+    it('should clear localStorage and request location permission when confirmed', () => {
+      // localStorage削除と位置情報許可要求のテスト（確認時）
+      // モックの設定
+      spyOn(window, 'confirm').and.returnValue(true);
+      spyOn(window, 'alert').and.stub();
+      spyOn(localStorage, 'removeItem').and.stub();
+      spyOn(localStorage, 'setItem').and.stub();
+      
+      // Geolocation APIのモック
+      const mockGeolocation = {
+        getCurrentPosition: jasmine.createSpy('getCurrentPosition').and.callFake(
+          (success: any) => {
+            // 成功コールバックを呼び出してテスト
+            success({
+              coords: { latitude: 35.681236, longitude: 139.767125 },
+              timestamp: Date.now()
+            });
+          }
+        )
+      };
+      
+      // navigatorのgeolocationをモック
+      Object.defineProperty(navigator, 'geolocation', {
+        value: mockGeolocation,
+        configurable: true
+      });
+      
+      // テストデータの設定
+      component.local = [{ lat: 35.681236, lng: 139.767125 }];
+      component.path = [{ lat: 35.681300, lng: 139.767200 }];
+      
+      // メソッド実行
+      component.clearLocalStorage();
+      
+      // 確認
+      expect(window.confirm).toHaveBeenCalledWith(
+        '本当にローカルデータを削除しますか？\n党員番号と記録されたパスがすべて削除され、位置情報の許可も再度求められます。'
+      );
+      expect(localStorage.removeItem).toHaveBeenCalledWith('login_name');
+      expect(localStorage.removeItem).toHaveBeenCalledWith('local');
+      expect(component.local).toEqual([]);
+      expect(component.path).toEqual([]);
+      expect(window.alert).toHaveBeenCalledTimes(2); // 削除完了 + 位置情報許可成功
+      expect(mockGeolocation.getCurrentPosition).toHaveBeenCalled();
+    });
+
+    it('should not clear localStorage when cancelled', () => {
+      // localStorage削除のキャンセル時のテスト
+      spyOn(window, 'confirm').and.returnValue(false);
+      spyOn(localStorage, 'removeItem').and.stub();
+      
+      const originalLocal = [{ lat: 35.681236, lng: 139.767125 }];
+      const originalPath = [{ lat: 35.681300, lng: 139.767200 }];
+      component.local = [...originalLocal];
+      component.path = [...originalPath];
+      
+      component.clearLocalStorage();
+      
+      expect(window.confirm).toHaveBeenCalled();
+      expect(localStorage.removeItem).not.toHaveBeenCalled();
+      expect(component.local).toEqual(originalLocal);
+      expect(component.path).toEqual(originalPath);
     });
   });
 });

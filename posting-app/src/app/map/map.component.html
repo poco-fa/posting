@@ -1,7 +1,15 @@
+<!-- GPS軌跡記録・表示用コントロールパネル -->
 <div id="controls">
+  <!-- 記録開始ボタン（記録中は無効化） -->
   <button id="startBtn" (click)="startRecording()" [disabled]="isRecording">開始</button>
+  
+  <!-- 記録停止ボタン（記録中のみ有効） -->
   <button id="stopBtn" (click)="stopRecording()" [disabled]="!isRecording">停止</button>
+  
+  <!-- 共有ボタン（ローカルデータが存在する場合のみ有効） -->
   <button id="registBtn" (click)="regist()" [disabled]="local.length === 0">共有</button>
+  
+  <!-- 現在位置取得ボタン（常時利用可能） -->
   <button id="locationBtn" (click)="getCurrentLocation()">現在位置</button>
 </div>
 
@@ -19,16 +27,38 @@
   [options]="mapOptions"
   (mapInitialized)="onMapInitialized($event)"
 >
+  <!-- 現在位置マーカー（GPS取得成功時のみ表示） -->
   <map-marker
     *ngIf="currentPosition"
     [position]="currentPosition"
     [title]="'現在位置'"
   ></map-marker>
-  <map-polyline *ngIf="path.length > 1" [path]="path" [options]="{strokeColor: '#FF0000', strokeWeight: 4}"></map-polyline>
-  <map-polyline *ngIf="local.length > 1" [path]="local" [options]="{strokeColor: '#00FF00', strokeWeight: 4}"></map-polyline>
-  <map-polyline *ngFor="let entry of shard | keyvalue"
-    [path]="entry.value" 
-    [options]="{strokeColor: '#0000FF', strokeWeight: 4}">
+  
+  <!-- 現在記録中のパス（赤色、距離ベース分割済み） -->
+  <!-- セグメント毎に個別のポリライン要素として描画 -->
+  <map-polyline 
+    *ngFor="let segment of pathSegments" 
+    [path]="segment.points" 
+    [options]="{strokeColor: '#FF0000', strokeWeight: 4}">
   </map-polyline>
+  
+  <!-- ローカル保存されたパス（緑色、距離ベース分割済み） -->
+  <!-- 過去に記録してローカルに保存された軌跡を表示 -->
+  <map-polyline 
+    *ngFor="let segment of localSegments" 
+    [path]="segment.points" 
+    [options]="{strokeColor: '#00FF00', strokeWeight: 4}">
+  </map-polyline>
+  
+  <!-- 共有されたパス（青色、距離ベース分割済み） -->
+  <!-- サーバーから取得した他ユーザーの軌跡を表示 -->
+  <!-- ユーザー別・日付別にキー化されたデータを展開 -->
+  <ng-container *ngFor="let entry of shard | keyvalue">
+    <map-polyline 
+      *ngFor="let segment of getShardSegments(entry.value, entry.key)" 
+      [path]="segment.points" 
+      [options]="{strokeColor: '#0000FF', strokeWeight: 4}">
+    </map-polyline>
+  </ng-container>
 </google-map>
 </div>

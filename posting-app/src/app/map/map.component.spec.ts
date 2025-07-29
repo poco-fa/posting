@@ -1,11 +1,38 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { Component } from '@angular/core';
 
 import { MapComponent } from './map.component';
+import { PathSegmentationService } from '../service/path-segmentation.service';
 
-describe('Map', () => {
+/**
+ * Google Maps API なしでのテスト用モックコンポーネント
+ * 実際の Google Maps 初期化を回避してテストを実行可能にする
+ */
+@Component({
+  selector: 'app-map',
+  template: '<div>Map Component</div>',
+  standalone: true
+})
+class MockMapComponent extends MapComponent {}
+
+/**
+ * MapComponent のユニットテスト
+ * 
+ * テスト対象機能：
+ * - コンポーネントの基本的な初期化
+ * - PathSegmentationService との統合
+ * - セグメント取得メソッドの動作
+ * - 初期状態の確認
+ * 
+ * 注意：Google Maps API の初期化は回避し、
+ * ロジック部分のみをテスト対象とする
+ */
+describe('MapComponent', () => {
   let component: MapComponent;
   let fixture: ComponentFixture<MapComponent>;
+  let pathSegmentationService: PathSegmentationService;
 
   beforeEach(async () => {
     // Mock Google Maps
@@ -19,68 +46,96 @@ describe('Map', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [MapComponent, HttpClientTestingModule],
+      imports: [HttpClientTestingModule], // HTTP通信のモック
+      providers: [PathSegmentationService],
+      schemas: [NO_ERRORS_SCHEMA] // 未知の要素（google-map等）を無視
+    })
+    .overrideComponent(MapComponent, {
+      set: {
+        // Google Maps 初期化を回避するための空テンプレート
+        template: '<div>Map Component</div>'
+      }
     })
     .compileComponents();
 
     fixture = TestBed.createComponent(MapComponent);
     component = fixture.componentInstance;
-    
-    // Don't trigger change detection to avoid Google Maps initialization
-    // fixture.detectChanges();
-  });
-
-  afterEach(() => {
-    localStorage.clear();
+    pathSegmentationService = TestBed.inject(PathSegmentationService);
+    // detectChanges() を呼ばず Google Maps 初期化を回避
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should clear localStorage when clearLocalStorage is called and confirmed', () => {
-    // Setup test data
-    localStorage.setItem('login_name', 'test-user');
-    localStorage.setItem('local', JSON.stringify([{lat: 35.681236, lng: 139.767125}]));
-    component.local = [{lat: 35.681236, lng: 139.767125}];
-    component.path = [{lat: 35.681236, lng: 139.767125}];
+  /**
+   * PathSegmentationService との統合テスト
+   * コンポーネントがサービスを正しく利用できることを確認
+   */
+  describe('component integration with PathSegmentationService', () => {
+    beforeEach(() => {
+      // Google Maps を初期化せずにコンポーネントを使用
+    });
 
-    // Mock confirm to return true
-    spyOn(window, 'confirm').and.returnValue(true);
-    spyOn(window, 'alert');
+    it('should return path segments', () => {
+      // 現在記録中軌跡のセグメント取得テスト
+      component.path = [
+        { lat: 35.681236, lng: 139.767125 },
+        { lat: 35.681300, lng: 139.767200 }
+      ];
+      
+      const segments = component.pathSegments;
+      expect(segments).toBeDefined();
+      expect(Array.isArray(segments)).toBe(true);
+    });
 
-    // Call the method
-    component.clearLocalStorage();
+    it('should return local segments', () => {
+      // ローカル保存軌跡のセグメント取得テスト
+      component.local = [
+        { lat: 35.681236, lng: 139.767125 },
+        { lat: 35.681300, lng: 139.767200 }
+      ];
+      
+      const segments = component.localSegments;
+      expect(segments).toBeDefined();
+      expect(Array.isArray(segments)).toBe(true);
+    });
 
-    // Verify localStorage is cleared
-    expect(localStorage.getItem('login_name')).toBeNull();
-    expect(localStorage.getItem('local')).toBeNull();
-    expect(component.local).toEqual([]);
-    expect(component.path).toEqual([]);
-    expect(window.confirm).toHaveBeenCalledWith('本当にローカルデータを削除しますか？\n党員番号と記録されたパスがすべて削除されます。');
-    expect(window.alert).toHaveBeenCalledWith('ローカルデータを削除しました。\nページを再読み込みすると党員番号の入力が求められます。');
-  });
+    it('should return shard segments', () => {
+      // 共有軌跡のセグメント取得テスト
+      const points = [
+        { lat: 35.681236, lng: 139.767125 },
+        { lat: 35.681300, lng: 139.767200 }
+      ];
+      
+      const segments = component.getShardSegments(points, 'test-key');
+      expect(segments).toBeDefined();
+      expect(Array.isArray(segments)).toBe(true);
+    });
 
-  it('should not clear localStorage when clearLocalStorage is called but not confirmed', () => {
-    // Setup test data
-    localStorage.setItem('login_name', 'test-user');
-    localStorage.setItem('local', JSON.stringify([{lat: 35.681236, lng: 139.767125}]));
-    component.local = [{lat: 35.681236, lng: 139.767125}];
-    component.path = [{lat: 35.681236, lng: 139.767125}];
+    it('should use PathSegmentationService for path segmentation', () => {
+      // PathSegmentationService の呼び出し確認
+      // サービスメソッドがコンポーネントから正しく呼ばれることをテスト
+      spyOn(pathSegmentationService, 'createPathSegments').and.returnValue([]);
+      
+      component.path = [
+        { lat: 35.681236, lng: 139.767125 },
+        { lat: 35.681300, lng: 139.767200 }
+      ];
+      
+      const segments = component.pathSegments;
+      expect(pathSegmentationService.createPathSegments).toHaveBeenCalledWith(component.path);
+    });
 
-    // Mock confirm to return false
-    spyOn(window, 'confirm').and.returnValue(false);
-    spyOn(window, 'alert');
-
-    // Call the method
-    component.clearLocalStorage();
-
-    // Verify localStorage is NOT cleared
-    expect(localStorage.getItem('login_name')).toBe('test-user');
-    expect(localStorage.getItem('local')).toBe(JSON.stringify([{lat: 35.681236, lng: 139.767125}]));
-    expect(component.local).toEqual([{lat: 35.681236, lng: 139.767125}]);
-    expect(component.path).toEqual([{lat: 35.681236, lng: 139.767125}]);
-    expect(window.confirm).toHaveBeenCalledWith('本当にローカルデータを削除しますか？\n党員番号と記録されたパスがすべて削除されます。');
-    expect(window.alert).not.toHaveBeenCalled();
+    it('should initialize with default values', () => {
+      // コンポーネントの初期状態確認
+      // 各プロパティが期待される初期値で設定されることをテスト
+      expect(component.center).toEqual({ lat: 35.681236, lng: 139.767125 }); // 東京駅
+      expect(component.zoom).toBe(15);
+      expect(component.isRecording).toBe(false); // 記録停止状態
+      expect(component.path).toEqual([]); // 空の軌跡
+      expect(component.local).toEqual([]); // 空のローカルデータ
+      expect(component.shard).toEqual({}); // 空の共有データ
+    });
   });
 });

@@ -39,13 +39,13 @@ export class PathSegmentationService {
    * 最大距離閾値（メートル単位）
    * 
    * 連続するGPS点間の距離がこの値を超える場合、軌跡を分割する。
-   * 1km（1000m）は以下の根拠に基づく：
+   * 100m は以下の根拠に基づく：
    * - 徒歩での一般的な移動速度: 4-6 km/h
    * - GPS記録間隔: 通常数秒〜1分程度
    * - 想定される最大合理的移動距離: 1分間で約100m程度
-   * - 安全マージンを考慮して1kmに設定
+   * - GPS精度の不安定性を考慮し、より保守的な100mに設定
    */
-  readonly maxDistanceThreshold = 1000; // 1km
+  readonly maxDistanceThreshold = 100; // 100m
 
   /**
    * ハーベルサイン公式を使用して2つのGPS座標間の距離を計算

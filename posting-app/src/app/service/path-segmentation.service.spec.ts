@@ -105,10 +105,10 @@ describe('PathSegmentationService', () => {
     });
 
     it('should handle points right at the distance threshold', () => {
-      // 距離閾値境界値テスト：1000m以下は接続される
-      // Create two points that are close to but under 1000m apart
+      // 距離閾値境界値テスト：100m以下は接続される
+      // Create two points that are close to but under 100m apart
       const point1 = { lat: 35.681236, lng: 139.767125 };
-      const point2 = { lat: 35.685236, lng: 139.767125 }; // ~444m north
+      const point2 = { lat: 35.681800, lng: 139.767125 }; // ~63m north
       const points = [point1, point2];
 
       const segments = service.createPathSegments(points);
@@ -116,13 +116,13 @@ describe('PathSegmentationService', () => {
     });
 
     it('should create separate segments when distance exceeds threshold', () => {
-      // 距離閾値超過テスト：1000m超過で分割される
-      // GPS信号不良による異常な跳躍を模擬（111km跳躍）
+      // 距離閾値超過テスト：100m超過で分割される
+      // GPS信号不良による異常な跳躍を模擬（1km跳躍）
       const points = [
         { lat: 35.681236, lng: 139.767125 }, // 東京駅
-        { lat: 35.681300, lng: 139.767200 }, // 東京駅の近く (< 1000m)
-        { lat: 36.681236, lng: 139.767125 }, // 東京駅から111km北 (> 1000m)
-        { lat: 36.681300, lng: 139.767200 }  // そのすぐ近く (< 1000m)
+        { lat: 35.681300, lng: 139.767200 }, // 東京駅の近く (< 100m)
+        { lat: 35.691236, lng: 139.767125 }, // 東京駅から約1.1km北 (> 100m)
+        { lat: 35.691300, lng: 139.767200 }  // そのすぐ近く (< 100m)
       ];
 
       const segments = service.createPathSegments(points);

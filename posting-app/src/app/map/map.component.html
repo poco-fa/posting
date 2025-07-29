@@ -51,7 +51,7 @@
   <!-- ユーザー別・日付別にキー化されたデータを展開 -->
   <ng-container *ngFor="let entry of shard | keyvalue">
     <map-polyline 
-      *ngFor="let segment of getShardSegments(entry.value)" 
+      *ngFor="let segment of getShardSegments(entry.value, entry.key)" 
       [path]="segment.points" 
       [options]="{strokeColor: '#0000FF', strokeWeight: 4}">
     </map-polyline>

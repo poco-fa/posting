@@ -98,7 +98,7 @@ describe('MapComponent', () => {
         { lat: 35.681300, lng: 139.767200 }
       ];
       
-      const segments = component.getShardSegments(points);
+      const segments = component.getShardSegments(points, 'test-key');
       expect(segments).toBeDefined();
       expect(Array.isArray(segments)).toBe(true);
     });

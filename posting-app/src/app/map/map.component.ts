@@ -53,7 +53,18 @@ export class MapComponent implements OnInit, AfterViewInit {
    * キー形式: "YYYY-MM-DD-ユーザー名"
    * 値: GPS座標配列
    */
-  shard: Record<string, LatLng[]> = {}; 
+  shard: Record<string, LatLng[]> = {};
+
+  /** 
+   * パフォーマンス最適化用キャッシュ
+   * セグメント分割結果をキャッシュして、テンプレートでの再計算を防ぐ
+   */
+  private _pathSegmentsCache: PathSegment[] = [];
+  private _localSegmentsCache: PathSegment[] = [];
+  private _shardSegmentsCache: Record<string, PathSegment[]> = {};
+  private _lastPathLength = 0;
+  private _lastLocalLength = 0;
+  private _lastShardKeys: string[] = []; 
   
   /** geolocation.watchPosition のID（記録停止時に使用） */
   watchId: number | null = null;
@@ -79,29 +90,47 @@ export class MapComponent implements OnInit, AfterViewInit {
   constructor(private http: HttpClient, private pathSegmentationService: PathSegmentationService) {}
 
   /**
-   * 現在記録中の軌跡を分割済みセグメントとして取得
+   * 現在記録中の軌跡を分割済みセグメントとして取得（キャッシュ付き）
+   * パフォーマンス向上のため、データが変更された場合のみ再計算
    * @returns 距離ベースで分割されたパスセグメント配列
    */
   get pathSegments(): PathSegment[] {
-    return this.pathSegmentationService.createPathSegments(this.path);
+    // データが変更された場合のみ再計算
+    if (this.path.length !== this._lastPathLength) {
+      this._pathSegmentsCache = this.pathSegmentationService.createPathSegments(this.path);
+      this._lastPathLength = this.path.length;
+    }
+    return this._pathSegmentsCache;
   }
 
   /**
-   * ローカル保存済み軌跡を分割済みセグメントとして取得
+   * ローカル保存済み軌跡を分割済みセグメントとして取得（キャッシュ付き）
+   * パフォーマンス向上のため、データが変更された場合のみ再計算
    * @returns 距離ベースで分割されたパスセグメント配列
    */
   get localSegments(): PathSegment[] {
-    return this.pathSegmentationService.createPathSegments(this.local);
+    // データが変更された場合のみ再計算
+    if (this.local.length !== this._lastLocalLength) {
+      this._localSegmentsCache = this.pathSegmentationService.createPathSegments(this.local);
+      this._lastLocalLength = this.local.length;
+    }
+    return this._localSegmentsCache;
   }
 
   /**
-   * 指定された座標配列を分割済みセグメントとして取得
-   * 共有軌跡の表示に使用
+   * 指定された座標配列を分割済みセグメントとして取得（キャッシュ付き）
+   * 共有軌跡の表示に使用。パフォーマンス向上のため結果をキャッシュ
    * @param points GPS座標配列
+   * @param key 共有データのキー（キャッシュ識別用）
    * @returns 距離ベースで分割されたパスセグメント配列
    */
-  getShardSegments(points: LatLng[]): PathSegment[] {
-    return this.pathSegmentationService.createPathSegments(points);
+  getShardSegments(points: LatLng[], key: string): PathSegment[] {
+    // キャッシュにない、または共有データが変更された場合のみ再計算
+    if (!this._shardSegmentsCache[key] || !this._lastShardKeys.includes(key)) {
+      this._shardSegmentsCache[key] = this.pathSegmentationService.createPathSegments(points);
+      this._lastShardKeys = Object.keys(this.shard);
+    }
+    return this._shardSegmentsCache[key];
   }
 
   /**
@@ -113,6 +142,8 @@ export class MapComponent implements OnInit, AfterViewInit {
     const saved = localStorage.getItem(this.storageKey);
     if (saved) {
       this.local = JSON.parse(saved);
+      // キャッシュクリア（データが読み込まれたため）
+      this._lastLocalLength = -1;
       if (this.local.length > 0) {
         // 最後に記録された位置を地図中心に設定
         this.center = this.local[this.local.length - 1];
@@ -203,6 +234,8 @@ export class MapComponent implements OnInit, AfterViewInit {
     // 新規記録開始時はpath配列をリセット
     // （local配列は保持して履歴として残す）
     this.path = [];
+    // キャッシュクリア
+    this._lastPathLength = -1;
 
     if (navigator.geolocation) {
       this.watchId = navigator.geolocation.watchPosition(
@@ -241,6 +274,8 @@ export class MapComponent implements OnInit, AfterViewInit {
           // 新しいポイントを軌跡に追加し、ローカルストレージに即座に保存
           // 記録中断時のデータ損失を防ぐ
           this.path = [...this.path, point];
+          // キャッシュクリア（次回アクセス時に再計算される）
+          this._lastPathLength = -1;
           localStorage.setItem(this.storageKey, JSON.stringify(this.path));
           this.center = point;
         },
@@ -275,10 +310,13 @@ export class MapComponent implements OnInit, AfterViewInit {
       
       // 記録中の軌跡をローカル履歴に追加
       this.local = [...this.local, ...this.path];
+      // キャッシュクリア（次回アクセス時に再計算される）
+      this._lastLocalLength = -1;
       localStorage.setItem(this.storageKey, JSON.stringify(this.local));
       
       // 記録中軌跡をクリア
       this.path = [];
+      this._lastPathLength = -1;
       
       // ローカルストレージから最新データを再読み込みして整合性を保つ
       const saved = localStorage.getItem(this.storageKey);
@@ -288,6 +326,8 @@ export class MapComponent implements OnInit, AfterViewInit {
         if (this.local.length > 0) {
           this.local = this.local.slice(1);
         }
+        // データ再読み込み後にキャッシュクリア
+        this._lastLocalLength = -1;
       }
       
       this.watchId = null;
@@ -387,6 +427,9 @@ export class MapComponent implements OnInit, AfterViewInit {
                   ...this.shard[key], 
                   ...(data[name][date].filter((item: any) => item !== null)),
                 ];
+                
+                // 共有データ変更時にキャッシュクリア
+                this._lastShardKeys = [];
               }
             }
           }

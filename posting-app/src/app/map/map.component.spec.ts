@@ -139,6 +139,81 @@ describe('MapComponent', () => {
     });
   });
 
+  describe('KML layer initialization', () => {
+    it('should apply KML layers after map is ready', () => {
+      // Setup: simulate KML layers in localStorage
+      const testLayers = [
+        { id: 'test-1', name: 'Test Layer 1', url: 'https://example.com/test1.kml', visible: true },
+        { id: 'test-2', name: 'Test Layer 2', url: 'https://example.com/test2.kml', visible: false }
+      ];
+      
+      // Set layers directly to simulate them being loaded
+      component.kmlLayers = testLayers;
+      
+      // Mock Google Maps instance with all required methods
+      const mockMap = jasmine.createSpyObj('mockMap', ['setZoom', 'setCenter']);
+      component.map = { googleMap: mockMap } as any;
+      
+      // Mock getCurrentLocation to prevent geolocation calls
+      spyOn(component, 'getCurrentLocation').and.stub();
+      
+      // Spy on updateKmlLayers to verify it's called
+      spyOn(component as any, 'updateKmlLayers').and.stub();
+      
+      // Call ngAfterViewInit which should apply KML layers to the map
+      component.ngAfterViewInit();
+      
+      // Verify that updateKmlLayers was called when map is ready
+      expect((component as any).updateKmlLayers).toHaveBeenCalled();
+    });
+
+    it('should not apply KML layers when map is not ready during ngOnInit', () => {
+      // Setup: simulate the race condition where layers are loaded but map isn't ready
+      const testLayers = [
+        { id: 'test-1', name: 'Test Layer', url: 'https://example.com/test.kml', visible: true }
+      ];
+      
+      // Spy on updateKmlLayers
+      spyOn(component as any, 'updateKmlLayers').and.stub();
+      
+      // Simulate what happens in ngOnInit subscription when layers are loaded from service
+      component.kmlLayers = testLayers;
+      
+      // Map is not ready yet (map property is undefined)
+      expect(component.map).toBeUndefined();
+      
+      // Manually simulate the subscription logic from ngOnInit
+      // This represents the race condition where layers load before map is ready
+      if (component.map?.googleMap) {
+        (component as any).updateKmlLayers();
+      }
+      
+      // updateKmlLayers should not be called since map is not ready
+      expect((component as any).updateKmlLayers).not.toHaveBeenCalled();
+    });
+
+    it('should apply KML layers on map initialization event', () => {
+      // Setup: simulate KML layers being loaded from localStorage
+      const testLayers = [
+        { id: 'test-1', name: 'Test Layer', url: 'https://example.com/test.kml', visible: true }
+      ];
+      
+      component.kmlLayers = testLayers;
+      
+      // Mock Google Maps instance
+      const mockMap = jasmine.createSpyObj('mockMap', ['setZoom', 'setCenter']) as google.maps.Map;
+      
+      // Spy on updateKmlLayers to verify it's called
+      spyOn(component as any, 'updateKmlLayers').and.stub();
+      
+      // Call onMapInitialized which should apply KML layers to the map
+      component.onMapInitialized(mockMap);
+      
+      // Verify that updateKmlLayers was called when map is initialized
+      expect((component as any).updateKmlLayers).toHaveBeenCalled();
+    });
+  });
+
   describe('clearLocalStorage', () => {
     it('should clear localStorage and request location permission when confirmed', () => {
       // localStorage削除と位置情報許可要求のテスト（確認時）

@@ -13,6 +13,69 @@
   <button id="locationBtn" (click)="getCurrentLocation()">現在位置</button>
 </div>
 
+<!-- 設定ボタン（右下のギアアイコン） -->
+<div id="settingsControl">
+  <button class="settings-btn" (click)="toggleOptionsScreen()" title="設定">
+    ⚙️
+  </button>
+</div>
+
+<!-- オプション画面（モーダル） -->
+<div id="optionsModal" *ngIf="showOptionsScreen" (click)="toggleOptionsScreen()">
+  <div class="options-content" (click)="$event.stopPropagation()">
+    <div class="options-header">
+      <h3>設定</h3>
+      <button class="close-btn" (click)="toggleOptionsScreen()">×</button>
+    </div>
+    
+    <div class="options-body">
+      <!-- KMLレイヤー設定 -->
+      <div class="option-section">
+        <h4>📍 KMLレイヤー</h4>
+        
+        <!-- KMLレイヤー一覧 -->
+        <div class="kml-layer-item" *ngFor="let layer of kmlLayers">
+          <div class="kml-toggle" 
+               [class.active]="layer.visible" 
+               (click)="toggleKmlLayer(layer.id, !layer.visible)">
+          </div>
+          <div class="kml-layer-info">
+            <div class="kml-layer-name">{{ layer.name }}</div>
+            <div class="kml-layer-url">{{ layer.url | slice:0:50 }}{{ layer.url.length > 50 ? '...' : '' }}</div>
+          </div>
+          <button class="kml-remove-btn" (click)="removeKmlLayer(layer.id, layer.name)">×</button>
+        </div>
+        
+        <!-- KML追加フォーム -->
+        <div class="kml-add-form" *ngIf="showKmlInput">
+          <input type="text" 
+                 class="kml-url-input" 
+                 placeholder="KML URL を入力"
+                 [(ngModel)]="newKmlUrl">
+          <input type="text" 
+                 class="kml-name-input" 
+                 placeholder="レイヤー名（省略可）"
+                 [(ngModel)]="newKmlName">
+          <div class="kml-form-buttons">
+            <button class="kml-add-confirm" (click)="addKmlLayer()">追加</button>
+            <button class="kml-add-cancel" (click)="toggleKmlInput()">キャンセル</button>
+          </div>
+        </div>
+        
+        <!-- KML追加ボタン -->
+        <button class="add-kml-btn" *ngIf="!showKmlInput" (click)="toggleKmlInput()">
+          ➕ 新しいKMLレイヤーを追加
+        </button>
+        
+        <!-- KMLレイヤーが0個の場合のメッセージ -->
+        <div class="no-kml-message" *ngIf="kmlLayers.length === 0 && !showKmlInput">
+          <p>KMLレイヤーが追加されていません</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Inconspicuous clear localStorage button -->
 <div id="clearDataControl">
   <span class="clear-data-link" (click)="clearLocalStorage()">データ削除</span>

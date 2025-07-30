@@ -13,6 +13,52 @@
   <button id="locationBtn" (click)="getCurrentLocation()">現在位置</button>
 </div>
 
+<!-- KMLレイヤーコントロール -->
+<div id="kmlControls" *ngIf="kmlLayers.length > 0 || showKmlInput">
+  <div class="kml-section-title">📍 KMLレイヤー</div>
+  
+  <!-- KMLレイヤー一覧 -->
+  <div class="kml-layer-item" *ngFor="let layer of kmlLayers">
+    <div class="kml-toggle" 
+         [class.active]="layer.visible" 
+         (click)="toggleKmlLayer(layer.id, !layer.visible)">
+    </div>
+    <div class="kml-layer-info">
+      <div class="kml-layer-name">{{ layer.name }}</div>
+      <div class="kml-layer-url">{{ layer.url | slice:0:50 }}{{ layer.url.length > 50 ? '...' : '' }}</div>
+    </div>
+    <button class="kml-remove-btn" (click)="removeKmlLayer(layer.id, layer.name)">×</button>
+  </div>
+  
+  <!-- KML追加フォーム -->
+  <div class="kml-add-form" *ngIf="showKmlInput">
+    <input type="text" 
+           class="kml-url-input" 
+           placeholder="KML URL を入力"
+           [(ngModel)]="newKmlUrl">
+    <input type="text" 
+           class="kml-name-input" 
+           placeholder="レイヤー名（省略可）"
+           [(ngModel)]="newKmlName">
+    <div class="kml-form-buttons">
+      <button class="kml-add-confirm" (click)="addKmlLayer()">追加</button>
+      <button class="kml-add-cancel" (click)="toggleKmlInput()">キャンセル</button>
+    </div>
+  </div>
+  
+  <!-- KML追加ボタン -->
+  <button class="add-kml-btn" *ngIf="!showKmlInput" (click)="toggleKmlInput()">
+    ➕ 新しいKMLレイヤーを追加
+  </button>
+</div>
+
+<!-- KML追加ボタン（レイヤーが0個の場合） -->
+<div id="addKmlControl" *ngIf="kmlLayers.length === 0 && !showKmlInput">
+  <button class="add-kml-main-btn" (click)="toggleKmlInput()">
+    📍 KMLレイヤーを追加
+  </button>
+</div>
+
 <!-- Inconspicuous clear localStorage button -->
 <div id="clearDataControl">
   <span class="clear-data-link" (click)="clearLocalStorage()">データ削除</span>

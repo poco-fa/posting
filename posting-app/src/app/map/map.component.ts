@@ -1,9 +1,11 @@
 import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
 import { GoogleMap, GoogleMapsModule } from '@angular/google-maps';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { PathSegmentationService, LatLng, PathSegment } from '../service/path-segmentation.service';
+import { KmlLayerService, KmlLayerInfo } from '../service/kml-layer.service';
 
 /**
  * GPS軌跡記録・表示用メインマップコンポーネント
@@ -23,7 +25,7 @@ import { PathSegmentationService, LatLng, PathSegment } from '../service/path-se
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [GoogleMapsModule, CommonModule], 
+  imports: [GoogleMapsModule, CommonModule, FormsModule], 
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
 })
@@ -75,6 +77,18 @@ export class MapComponent implements OnInit, AfterViewInit {
   /** ログインユーザー名（共有時に使用） */
   readonly login_name = localStorage.getItem('login_name') || 'unknown';
 
+  /** KMLレイヤー一覧 */
+  kmlLayers: KmlLayerInfo[] = [];
+
+  /** KMLレイヤー追加用の表示フラグ */
+  showKmlInput = false;
+
+  /** 新しいKML URL入力用 */
+  newKmlUrl = '';
+
+  /** 新しいKMLレイヤー名入力用 */
+  newKmlName = '';
+
   /**
    * Google Maps の表示オプション
    * UIコントロールを最小限に抑えた設定
@@ -87,7 +101,7 @@ export class MapComponent implements OnInit, AfterViewInit {
     scaleControl: false,        // スケールバーを非表示
   };
 
-  constructor(private http: HttpClient, private pathSegmentationService: PathSegmentationService) {}
+  constructor(private http: HttpClient, private pathSegmentationService: PathSegmentationService, private kmlLayerService: KmlLayerService) {}
 
   /**
    * 現在記録中の軌跡を分割済みセグメントとして取得（キャッシュ付き）
@@ -152,6 +166,15 @@ export class MapComponent implements OnInit, AfterViewInit {
 
     // サーバーから共有軌跡データを取得
     this.fetchShardData();
+
+    // KMLレイヤーサービスの購読
+    this.kmlLayerService.layers$.subscribe(layers => {
+      this.kmlLayers = layers;
+      // 地図が初期化されている場合はKMLレイヤーを更新
+      if (this.map?.googleMap) {
+        this.updateKmlLayers();
+      }
+    });
   }
 
   /**
@@ -169,6 +192,8 @@ export class MapComponent implements OnInit, AfterViewInit {
       this.getCurrentLocation();
       if (this.map?.googleMap) {
         this.map.googleMap.setZoom(15);// ズームレベルを調整
+        // KMLレイヤーを初期化
+        this.updateKmlLayers();
       }
     }
   }
@@ -505,6 +530,96 @@ export class MapComponent implements OnInit, AfterViewInit {
       );
     } else {
       alert('このブラウザは位置情報をサポートしていません。');
+    }
+  }
+
+  /**
+   * KMLレイヤーをGoogle Mapに反映
+   */
+  private updateKmlLayers(): void {
+    if (!this.map?.googleMap) return;
+
+    this.kmlLayers.forEach(layerInfo => {
+      if (!layerInfo.layer) {
+        // Google Maps KmlLayerを作成
+        const kmlLayer = new google.maps.KmlLayer({
+          url: layerInfo.url,
+          map: layerInfo.visible ? this.map!.googleMap! : null,
+          preserveViewport: true, // 地図の表示範囲を保持
+          suppressInfoWindows: false // 情報ウィンドウを表示
+        });
+
+        // サービスにレイヤーオブジェクトを設定
+        this.kmlLayerService.setGoogleMapsLayer(layerInfo.id, kmlLayer);
+
+        // エラーハンドリング
+        kmlLayer.addListener('status_changed', () => {
+          const status = kmlLayer.getStatus();
+          if (status !== google.maps.KmlLayerStatus.OK) {
+            console.warn(`KMLレイヤー "${layerInfo.name}" の読み込みに失敗しました:`, status);
+          }
+        });
+      } else {
+        // 既存レイヤーの表示状態を更新
+        layerInfo.layer.setMap(layerInfo.visible ? this.map!.googleMap! : null);
+      }
+    });
+  }
+
+  /**
+   * KMLレイヤーの表示/非表示を切り替え
+   * @param layerId レイヤーID
+   * @param visible 表示状態
+   */
+  toggleKmlLayer(layerId: string, visible: boolean): void {
+    this.kmlLayerService.toggleLayerVisibility(layerId, visible);
+  }
+
+  /**
+   * KMLレイヤー追加フォームの表示/非表示切り替え
+   */
+  toggleKmlInput(): void {
+    this.showKmlInput = !this.showKmlInput;
+    if (!this.showKmlInput) {
+      // フォームを閉じる際にリセット
+      this.newKmlUrl = '';
+      this.newKmlName = '';
+    }
+  }
+
+  /**
+   * 新しいKMLレイヤーを追加
+   */
+  addKmlLayer(): void {
+    if (!this.newKmlUrl.trim()) {
+      alert('KML URLを入力してください');
+      return;
+    }
+
+    const layer = this.kmlLayerService.addLayer(
+      this.newKmlUrl.trim(),
+      this.newKmlName.trim() || undefined
+    );
+
+    if (layer) {
+      // 追加成功時はフォームをリセット
+      this.newKmlUrl = '';
+      this.newKmlName = '';
+      this.showKmlInput = false;
+      alert(`KMLレイヤー "${layer.name}" を追加しました`);
+    } else {
+      alert('無効なKML URLです。正しいURLを入力してください。');
+    }
+  }
+
+  /**
+   * KMLレイヤーを削除
+   * @param layerId レイヤーID
+   * @param layerName レイヤー名（確認ダイアログ用）
+   */
+  removeKmlLayer(layerId: string, layerName: string): void {
+    if (confirm(`KMLレイヤー "${layerName}" を削除しますか？`)) {
+      this.kmlLayerService.removeLayer(layerId);
     }
   }
 }

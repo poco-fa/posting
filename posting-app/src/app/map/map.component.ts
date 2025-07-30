@@ -89,6 +89,9 @@ export class MapComponent implements OnInit, AfterViewInit {
   /** 新しいKMLレイヤー名入力用 */
   newKmlName = '';
 
+  /** オプション画面の表示フラグ */
+  showOptionsScreen = false;
+
   /**
    * Google Maps の表示オプション
    * UIコントロールを最小限に抑えた設定
@@ -621,5 +624,12 @@ export class MapComponent implements OnInit, AfterViewInit {
     if (confirm(`KMLレイヤー "${layerName}" を削除しますか？`)) {
       this.kmlLayerService.removeLayer(layerId);
     }
+  }
+
+  /**
+   * オプション画面の表示/非表示を切り替え
+   */
+  toggleOptionsScreen(): void {
+    this.showOptionsScreen = !this.showOptionsScreen;
   }
 }

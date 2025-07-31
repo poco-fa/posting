@@ -202,11 +202,14 @@ export class MapComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * マップ初期化時のカスタムボタン配置処理
-   * 現在は使用していないが、将来的な拡張用に保持
+   * マップ初期化時の処理
+   * Google Maps が完全に初期化された後に呼び出される
    * @param map 初期化された Google Maps インスタンス
    */
   onMapInitialized(map: google.maps.Map) {
+    // KMLレイヤーを初期化（起動時にローカルストレージから読み込まれたレイヤーを適用）
+    this.updateKmlLayers();
+    
     const controls = document.getElementById('controls')!;
     // マップコントロール領域にボタンを配置する場合は以下を有効化
     //map.controls[google.maps.ControlPosition.RIGHT_TOP].push(controls);

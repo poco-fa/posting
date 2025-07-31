@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
 import { GoogleMap, GoogleMapsModule } from '@angular/google-maps';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +6,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { PathSegmentationService, LatLng, PathSegment } from '../service/path-segmentation.service';
 import { KmlLayerService, KmlLayerInfo } from '../service/kml-layer.service';
+import { WakeLockService } from '../service/wake-lock.service';
 
 /**
  * GPS軌跡記録・表示用メインマップコンポーネント
@@ -29,7 +30,7 @@ import { KmlLayerService, KmlLayerInfo } from '../service/kml-layer.service';
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
 })
-export class MapComponent implements OnInit, AfterViewInit {
+export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('map') map!: GoogleMap;
   
   /** 地図の中心座標（デフォルト: 東京駅） */
@@ -92,6 +93,12 @@ export class MapComponent implements OnInit, AfterViewInit {
   /** オプション画面の表示フラグ */
   showOptionsScreen = false;
 
+  /** スリープ防止機能の有効/無効フラグ */
+  wakeLockEnabled = false;
+
+  /** ページ表示状態変更のイベントリスナー */
+  private visibilityChangeHandler = this.handleVisibilityChange.bind(this);
+
   /**
    * Google Maps の表示オプション
    * UIコントロールを最小限に抑えた設定
@@ -104,7 +111,7 @@ export class MapComponent implements OnInit, AfterViewInit {
     scaleControl: false,        // スケールバーを非表示
   };
 
-  constructor(private http: HttpClient, private pathSegmentationService: PathSegmentationService, private kmlLayerService: KmlLayerService) {}
+  constructor(private http: HttpClient, private pathSegmentationService: PathSegmentationService, private kmlLayerService: KmlLayerService, private wakeLockService: WakeLockService) {}
 
   /**
    * 現在記録中の軌跡を分割済みセグメントとして取得（キャッシュ付き）
@@ -178,6 +185,15 @@ export class MapComponent implements OnInit, AfterViewInit {
         this.updateKmlLayers();
       }
     });
+
+    // ページの表示状態変更を監視してWake Lockを適切に管理
+    document.addEventListener('visibilitychange', this.visibilityChangeHandler);
+    
+    // ローカルストレージからWake Lock設定を復元
+    const savedWakeLockSetting = localStorage.getItem('wakeLockEnabled');
+    if (savedWakeLockSetting !== null) {
+      this.wakeLockEnabled = JSON.parse(savedWakeLockSetting);
+    }
   }
 
   /**
@@ -254,8 +270,9 @@ export class MapComponent implements OnInit, AfterViewInit {
    * 4. GPS精度フィルタリング（100m閾値）
    * 5. 距離ベース異常検出とログ出力
    * 6. 地図表示とローカルストレージへの自動保存
+   * 7. スリープ防止機能の有効化（設定されている場合）
    */
-  startRecording() {
+  async startRecording() {
     if (this.isRecording) return;
     this.isRecording = true;
     
@@ -264,6 +281,16 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.path = [];
     // キャッシュクリア
     this._lastPathLength = -1;
+
+    // スリープ防止機能が有効な場合はWake Lockを要求
+    if (this.wakeLockEnabled) {
+      const wakeLockSuccess = await this.wakeLockService.requestWakeLock();
+      if (wakeLockSuccess) {
+        console.log('記録開始: スリープ防止機能を有効化しました');
+      } else {
+        console.warn('スリープ防止機能の有効化に失敗しました');
+      }
+    }
 
     if (navigator.geolocation) {
       this.watchId = navigator.geolocation.watchPosition(
@@ -327,10 +354,19 @@ export class MapComponent implements OnInit, AfterViewInit {
    * 2. 記録中軌跡をローカル履歴に統合
    * 3. ローカルストレージの更新
    * 4. 記録状態のリセット
+   * 5. スリープ防止機能の解除
    */
-  stopRecording() {
+  async stopRecording() {
     if (!this.isRecording) return;
     this.isRecording = false;
+    
+    // Wake Lockを解除してスリープ防止を停止
+    if (this.wakeLockService.active) {
+      const wakeLockReleased = await this.wakeLockService.releaseWakeLock();
+      if (wakeLockReleased) {
+        console.log('記録停止: スリープ防止機能を解除しました');
+      }
+    }
     
     if (this.watchId !== null) {
       // GPS位置監視を停止
@@ -624,6 +660,69 @@ export class MapComponent implements OnInit, AfterViewInit {
     if (confirm(`KMLレイヤー "${layerName}" を削除しますか？`)) {
       this.kmlLayerService.removeLayer(layerId);
     }
+  }
+
+  /**
+   * コンポーネント破棄処理
+   * Wake Lockの解除とイベントリスナーのクリーンアップ
+   */
+  ngOnDestroy(): void {
+    // ページ表示状態変更のイベントリスナーを削除
+    document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+    
+    // Wake Lockが有効な場合は解除
+    if (this.wakeLockService.active) {
+      this.wakeLockService.releaseWakeLock();
+    }
+  }
+
+  /**
+   * ページの表示状態が変更された時の処理
+   * ページが隠れた時にWake Lockは自動的に解除され、
+   * ページが再び表示された時に必要に応じて再取得する
+   */
+  private async handleVisibilityChange(): Promise<void> {
+    if (this.wakeLockEnabled && this.isRecording) {
+      await this.wakeLockService.handleVisibilityChange();
+    }
+  }
+
+  /**
+   * Wake Lock（スリープ防止）機能の有効/無効を切り替え
+   * @param enabled 有効にする場合はtrue
+   */
+  async toggleWakeLock(enabled: boolean): Promise<void> {
+    this.wakeLockEnabled = enabled;
+    
+    // 設定をローカルストレージに保存
+    localStorage.setItem('wakeLockEnabled', JSON.stringify(enabled));
+
+    if (enabled && this.isRecording) {
+      // スリープ防止を有効にし、記録中の場合はWake Lockを要求
+      const success = await this.wakeLockService.requestWakeLock();
+      if (!success) {
+        alert('スリープ防止機能の有効化に失敗しました。\nこのブラウザではサポートされていない可能性があります。');
+      }
+    } else if (!enabled) {
+      // スリープ防止を無効にしてWake Lockを解除
+      await this.wakeLockService.releaseWakeLock();
+    }
+  }
+
+  /**
+   * Wake Lock APIがサポートされているかチェック
+   * @returns サポートされている場合はtrue
+   */
+  get isWakeLockSupported(): boolean {
+    return this.wakeLockService.isSupported();
+  }
+
+  /**
+   * Wake Lockが現在有効かどうか
+   * @returns 有効な場合はtrue
+   */
+  get isWakeLockActive(): boolean {
+    return this.wakeLockService.active;
   }
 
   /**

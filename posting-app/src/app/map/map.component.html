@@ -29,6 +29,34 @@
     </div>
     
     <div class="options-body">
+      <!-- スリープ防止設定 -->
+      <div class="option-section">
+        <h4>🔒 スリープ防止</h4>
+        <div class="option-item" *ngIf="isWakeLockSupported">
+          <div class="option-description">
+            <div class="option-title">記録中のスリープを防止</div>
+            <div class="option-subtitle">GPS記録中に画面がスリープしないようにします</div>
+          </div>
+          <div class="toggle-switch" 
+               [class.active]="wakeLockEnabled" 
+               (click)="toggleWakeLock(!wakeLockEnabled)">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+        <div class="option-item" *ngIf="!isWakeLockSupported">
+          <div class="option-description">
+            <div class="option-title">スリープ防止（非対応）</div>
+            <div class="option-subtitle">このブラウザではスリープ防止機能をサポートしていません</div>
+          </div>
+        </div>
+        <div class="wake-lock-status" *ngIf="isWakeLockSupported && wakeLockEnabled">
+          <span class="status-indicator" [class.active]="isWakeLockActive"></span>
+          <span class="status-text">
+            {{ isWakeLockActive ? 'スリープ防止中' : (isRecording ? '待機中' : '記録開始時に有効化') }}
+          </span>
+        </div>
+      </div>
+
       <!-- KMLレイヤー設定 -->
       <div class="option-section">
         <h4>📍 KMLレイヤー</h4>
